@@ -4,13 +4,13 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import ru.kpfu.itis.ibragimovaidar.Game;
 import ru.kpfu.itis.ibragimovaidar.GameCycleStage;
 import ru.kpfu.itis.ibragimovaidar.message.Message;
 import ru.kpfu.itis.ibragimovaidar.message.MessageType;
 
 import java.net.Socket;
-import java.util.Objects;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
@@ -37,7 +37,13 @@ public class Player implements Runnable {
 
 	@Getter
 	@Setter
-	private volatile boolean isReadyToAcceptsGameStatus = false;
+	private volatile boolean hasMessagesToWrite = false;
+
+	@Getter
+	private final Queue<Message> messagesToWrite = new LinkedList<>();
+
+	@Getter
+	private volatile boolean readyToWriteMessages = false;
 
 	//game lifecycle
 	@SneakyThrows
@@ -45,41 +51,38 @@ public class Player implements Runnable {
 	public void run() {
 		log.info("Player thread started, player:{}", this);
 		// waiting for player
-		while (playerStatus.equals(PlayerStatus.WAITING_FOR_PLAYER)){
+		if (playerStatus.equals(PlayerStatus.WAITING_FOR_PLAYER)){
 			Message message = connection.readMessage(MessageType.JOIN_REQUEST);
 			String username = message.getPayload();
 			playerInfo = new PlayerInfo(availableId.incrementAndGet(), username, 1000);
-
 			Message joinResponseMessage = new Message(MessageType.JOIN_RESPONSE, playerInfo.getId().toString());
 			connection.writeMessage(joinResponseMessage);
 		}
-
-		synchronized (this){
-			playerStatus = PlayerStatus.READY_TO_START;
-			while (!gameCycleStage.equals(GameCycleStage.IN_PROGRESS)){
-				wait();
-			}
+		playerStatus = PlayerStatus.READY_TO_START;
+		while (!gameCycleStage.equals(GameCycleStage.IN_PROGRESS)) {
+			Thread.sleep(200);
 		}
-
+		log.debug(Thread.currentThread() + ", game stage: " + gameCycleStage);
 		// start game
 		Message startGameMessage = new Message(MessageType.START_GAME, null);
 		connection.writeMessage(startGameMessage);
 		playerStatus = PlayerStatus.IN_PROCESS;
 
 		while (gameCycleStage.equals(GameCycleStage.IN_PROGRESS)) {
-			synchronized (this){
-				while (!isReadyToAcceptsGameStatus){
-					wait();
-				}
-				Message message = connection.readMessage(MessageType.SEND_GAME_STATUS);
-				int health = Integer.parseInt(message.getPayload());
-				playerInfo.setHealth(health);
-				if (health <= 0){
-					playerStatus = PlayerStatus.END;
-					gameCycleStage = GameCycleStage.END;
-				}
-				isReadyToAcceptsGameStatus = false;
+			while (messagesToWrite.size() > 0) {
+				Message message = messagesToWrite.poll();
+				connection.writeMessage(message);
 			}
+			Message requestGameStatusMessage = new Message(MessageType.REQUEST_GAME_STATUS, null);
+			connection.writeMessage(requestGameStatusMessage);
+			Message responseGameStatusMessage = connection.readMessage(MessageType.RESPONSE_GAME_STATUS);
+			int health = Integer.parseInt(responseGameStatusMessage.getPayload());
+			playerInfo.setHealth(health);
+			if (health <= 0) {
+				playerStatus = PlayerStatus.END;
+				gameCycleStage = GameCycleStage.END;
+			}
+			Thread.sleep(100);
 		}
 	}
 }

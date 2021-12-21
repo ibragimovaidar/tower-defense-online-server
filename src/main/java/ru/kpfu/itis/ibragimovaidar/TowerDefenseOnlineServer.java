@@ -54,9 +54,4 @@ public class TowerDefenseOnlineServer implements AutoCloseable {
 	public void close() throws Exception {
 		serverSocket.close();
 	}
-
-	@Override
-	protected void finalize() throws Throwable {
-		serverSocket.close();
-	}
 }

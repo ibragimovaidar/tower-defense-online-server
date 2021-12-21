@@ -31,23 +31,20 @@ public class Game implements Runnable {
 		log.info("Game lifecycle started");
 		while (!player1.getPlayerStatus().equals(PlayerStatus.READY_TO_START) ||
 				!player2.getPlayerStatus().equals(PlayerStatus.READY_TO_START)){
-			Thread.sleep(200);
+			log.info((Thread.currentThread() + " " + player1.getPlayerStatus()));
+			log.info(Thread.currentThread() + " " + player2.getPlayerStatus());
+			Thread.sleep(500);
 		}
 		setStage(GameCycleStage.IN_PROGRESS);
-		player1.notify();
-		player2.notify();
 
 		// ship generation
 		while (!player1.getGameCycleStage().equals(GameCycleStage.END) &&
-				!player2.getGameCycleStage().equals(GameCycleStage.END) &&
-				!player1.isReadyToAcceptsGameStatus() &&
-				!player2.isReadyToAcceptsGameStatus()
-		){
+				!player2.getGameCycleStage().equals(GameCycleStage.END)){
 			Message createShipMessage = new Message(MessageType.CREATE_SHIP, "1");
-			player1.getConnection().writeMessage(createShipMessage);
-			player2.getConnection().writeMessage(createShipMessage);
-			player1.setReadyToAcceptsGameStatus(true);
-			player2.setReadyToAcceptsGameStatus(true);
+			player1.getMessagesToWrite().offer(createShipMessage);
+			player2.getMessagesToWrite().offer(createShipMessage);
+			player1.setHasMessagesToWrite(true);
+			player2.setHasMessagesToWrite(true);
 			Thread.sleep(1000);
 		}
 
@@ -57,8 +54,8 @@ public class Game implements Runnable {
 		} else {
 			endGameMessage = new Message(MessageType.END_GAME, player1.getPlayerInfo().getId().toString());
 		}
-		player1.getConnection().writeMessage(endGameMessage);
-		player2.getConnection().writeMessage(endGameMessage);
+		player1.getMessagesToWrite().offer(endGameMessage);
+		player2.getMessagesToWrite().offer(endGameMessage);
 	}
 
 	private void setStage(GameCycleStage stage){
