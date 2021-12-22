@@ -1,6 +1,8 @@
-package ru.kpfu.itis.ibragimovaidar.message;
+package ru.kpfu.itis.ibragimovaidar.net.message;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 
 import java.io.Serializable;
 

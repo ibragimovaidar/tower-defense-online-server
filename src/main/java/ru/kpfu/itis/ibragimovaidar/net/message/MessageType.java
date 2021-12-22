@@ -1,4 +1,4 @@
-package ru.kpfu.itis.ibragimovaidar.message;
+package ru.kpfu.itis.ibragimovaidar.net.message;
 
 public enum MessageType {
 
