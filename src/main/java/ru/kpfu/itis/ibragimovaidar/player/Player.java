@@ -5,8 +5,8 @@ import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import ru.kpfu.itis.ibragimovaidar.GameCycleStage;
-import ru.kpfu.itis.ibragimovaidar.message.Message;
-import ru.kpfu.itis.ibragimovaidar.message.MessageType;
+import ru.kpfu.itis.ibragimovaidar.net.message.Message;
+import ru.kpfu.itis.ibragimovaidar.net.message.MessageType;
 
 import java.net.Socket;
 import java.util.LinkedList;
